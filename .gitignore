@@ -1,27 +1,19 @@
-<<<<<<< HEAD
-__pycache__/
-*.pyc
-*.pyo
-.env
-*.egg-info/
-dist/
-build/
-
-=======
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
 *.egg-info/
 dist/
 build/
-.eggs/
 *.egg
+.eggs/
 venv/
 .venv/
 
 # Node
 node_modules/
+npm-debug.log*
 
 # OS
 .DS_Store
@@ -35,8 +27,12 @@ Thumbs.db
 .idea/
 *.sublime-*
 
-# Runtime
-*.log
-*.tmp
-*.cache
->>>>>>> 4460da4 (Add README, LICENSE (MIT), and .gitignore)
+# Environment
+.env
+.env.local
+
+# Testing
+.pytest_cache/
+htmlcov/
+.coverage
+
