@@ -1,12 +1,13 @@
 ---
 name: ai-talent-graph
+version: 7.0.0
 description: "Academic research-oriented AI scholar profiling tool integrating OpenAlex, arXiv, Semantic Scholar, ORCID free APIs, with optional X/Twitter public influence data. Triggers: search scholar, find expert, AI talent graph, analyze institution, find LLM researchers, latest papers, academic graph, paper tracing, research direction analysis, check scholar twitter, X account influence. Not for: recruitment-oriented analysis (use ai-talent-radar); precise Chinese scholar search (data sources are primarily English)."
 tags: [talent, academic, research, scholar, openalex, arxiv, twitter, x]
 metadata:
   version: "V7"
 ---
 
-# AI Talent Graph V7 🕸️
+# ai-talent-graph 7.0.0
 
 ## First-time Setup
 
@@ -163,7 +164,7 @@ Returns recent arXiv preprints with abstracts and PDF links. arXiv enforces 3-se
 
 ## Changelog
 
-### V7
+### 7.0.0
 - Added X/Twitter scholar influence dimension: supplement followers, Bio, tweet count after profile generation
 - Added X/Twitter trigger words in description
 - Tags: added `twitter`, `x`
