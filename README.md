@@ -65,6 +65,7 @@ ai-talent-graph/
 │   ├── semantic_scholar.py # Semantic Scholar API wrapper
 │   ├── orcid_api.py        # ORCID API wrapper
 │   └── github_api.py       # GitHub API wrapper
+├── references/             # Reference documentation
 └── .gitignore
 ```
 
