@@ -30,6 +30,14 @@ class OrcidAPI:
         if elapsed < self.min_interval:
             time.sleep(self.min_interval - elapsed)
         self.last_request_time = time.time()
+
+    @staticmethod
+    def _dict(value) -> Dict:
+        return value if isinstance(value, dict) else {}
+
+    @staticmethod
+    def _list(value) -> List:
+        return value if isinstance(value, list) else []
     
     def search(self, query: str, limit: int = 10) -> List[Dict]:
         """
@@ -97,34 +105,35 @@ class OrcidAPI:
             data = resp.json()
             
             # 提取基本信息
-            person = data.get("person", {})
-            name = person.get("name", {})
-            given_names = name.get("given-names", {}).get("value", "")
-            family_name = name.get("family-name", {}).get("value", "")
+            person = self._dict(data.get("person"))
+            name = self._dict(person.get("name"))
+            given_names = self._dict(name.get("given-names")).get("value", "")
+            family_name = self._dict(name.get("family-name")).get("value", "")
             full_name = f"{given_names} {family_name}".strip() or "Unknown"
             
             # 其他名称
             other_names = []
-            for on in person.get("other-names", {}).get("other-name", []):
+            other_names_data = self._dict(person.get("other-names"))
+            for on in self._list(other_names_data.get("other-name")):
                 val = on.get("content", "")
                 if val:
                     other_names.append(val)
             
             # 简介
             biography = ""
-            bio_elem = person.get("biography", {})
+            bio_elem = self._dict(person.get("biography"))
             if bio_elem:
                 biography = bio_elem.get("content", "")
             
             # 研究机构
             employments = []
-            activities = data.get("activities-summary", {})
-            emp_group = activities.get("employments", {}).get("employment-summary", [])
+            activities = self._dict(data.get("activities-summary"))
+            emp_group = self._dict(activities.get("employments")).get("employment-summary", [])
             for emp in emp_group:
-                org = emp.get("organization", {})
+                org = self._dict(emp.get("organization"))
                 emp_data = {
                     "organization": org.get("name", ""),
-                    "country": org.get("address", {}).get("country", ""),
+                    "country": self._dict(org.get("address")).get("country", ""),
                     "role": emp.get("role-title", ""),
                     "start_date": self._format_date(emp.get("start-date")),
                     "end_date": self._format_date(emp.get("end-date"))
@@ -133,12 +142,12 @@ class OrcidAPI:
             
             # 教育背景
             educations = []
-            edu_group = activities.get("educations", {}).get("education-summary", [])
+            edu_group = self._dict(activities.get("educations")).get("education-summary", [])
             for edu in edu_group:
-                org = edu.get("organization", {})
+                org = self._dict(edu.get("organization"))
                 edu_data = {
                     "institution": org.get("name", ""),
-                    "country": org.get("address", {}).get("country", ""),
+                    "country": self._dict(org.get("address")).get("country", ""),
                     "degree": edu.get("role-title", ""),
                     "start_date": self._format_date(edu.get("start-date")),
                     "end_date": self._format_date(edu.get("end-date"))
@@ -146,7 +155,7 @@ class OrcidAPI:
                 educations.append(edu_data)
             
             # 论文数量估算
-            works_count = len(activities.get("works", {}).get("group", []))
+            works_count = len(self._list(self._dict(activities.get("works")).get("group")))
             
             return {
                 "orcid_id": orcid_id,
@@ -167,8 +176,9 @@ class OrcidAPI:
         """格式化日期"""
         if not date_obj:
             return None
-        year = date_obj.get("year", {}).get("value", "")
-        month = date_obj.get("month", {}).get("value", "")
+        date_obj = self._dict(date_obj)
+        year = self._dict(date_obj.get("year")).get("value", "")
+        month = self._dict(date_obj.get("month")).get("value", "")
         if year and month:
             return f"{year}-{month}"
         return year or None

@@ -32,6 +32,18 @@ class AITalentGraph:
         self.github = GitHubAPI()
         self.ss = SemanticScholarAPI()
 
+    def _looks_like_name_query(self, query: str) -> bool:
+        broad_terms = {
+            "ai", "agent", "agents", "alignment", "attention", "computer",
+            "deep", "diffusion", "graph", "language", "learning", "llm",
+            "machine", "model", "models", "multimodal", "neural", "nlp",
+            "reasoning", "reinforcement", "robotics", "transformer",
+            "transformers", "vision"
+        }
+        tokens = [t.strip(".,;:()[]{}'\"").lower() for t in query.split()]
+        tokens = [t for t in tokens if t]
+        return 2 <= len(tokens) <= 4 and not any(t in broad_terms for t in tokens)
+
     # ──────────────────────────────────────────
     # 1. 搜索学者
     # ──────────────────────────────────────────
@@ -48,7 +60,10 @@ class AITalentGraph:
         # OpenAlex（主力）
         print(f"[1/2] OpenAlex 搜索: {query}...", file=sys.stderr)
         try:
-            oa = self.openalex.search_authors(query, limit=min(limit * 2, 25))
+            if self._looks_like_name_query(query):
+                oa = self.openalex.search_authors(query, limit=min(limit * 2, 25))
+            else:
+                oa = self.openalex.search_authors_by_works(query, limit=min(limit * 2, 20))
             if h_min:
                 oa = [r for r in oa if (r.get("h_index") or 0) >= h_min]
             results["scholars"] = oa[:limit]
@@ -57,26 +72,31 @@ class AITalentGraph:
             print(msg, file=sys.stderr)
             results["warnings"].append(msg)
 
-        # ORCID（补充，最多 3 条）
-        print(f"[2/2] ORCID 补充搜索...", file=sys.stderr)
-        try:
-            orcid_results = self.orcid.search(query, limit=3)
-            # 简单去重（按姓名）
-            existing_names = {s.get("name", "").lower() for s in results["scholars"]}
-            for r in orcid_results:
-                if r.get("name", "").lower() not in existing_names:
-                    results["scholars"].append({
-                        "name": r.get("name"),
-                        "institutions": [e.get("organization") for e in r.get("employments", [])[:1]],
-                        "h_index": 0,
-                        "cited_by_count": 0,
-                        "works_count": r.get("works_count", 0),
-                        "topics": [],
-                        "orcid_url": r.get("profile_url"),
-                        "source": "orcid"
-                    })
-        except Exception as e:
-            results["warnings"].append(f"ORCID 数据暂不可用: {e}")
+        # ORCID is useful for person-name queries, but too noisy for topic queries.
+        if self._looks_like_name_query(query):
+            print(f"[2/2] ORCID 补充搜索...", file=sys.stderr)
+            try:
+                orcid_results = self.orcid.search(query, limit=3)
+                # 简单去重（按姓名）
+                existing_names = {s.get("name", "").lower() for s in results["scholars"]}
+                for r in orcid_results:
+                    if (r.get("works_count") or 0) <= 0:
+                        continue
+                    if r.get("name", "").lower() not in existing_names:
+                        results["scholars"].append({
+                            "name": r.get("name"),
+                            "institutions": [e.get("organization") for e in r.get("employments", [])[:1]],
+                            "h_index": 0,
+                            "cited_by_count": 0,
+                            "works_count": r.get("works_count", 0),
+                            "topics": [],
+                            "orcid_url": r.get("profile_url"),
+                            "source": "orcid"
+                        })
+            except Exception as e:
+                results["warnings"].append(f"ORCID 数据暂不可用: {e}")
+        else:
+            results["warnings"].append("ORCID supplement skipped for broad topic query to avoid noisy identity matches")
 
         # --lang 筛选（通过 GitHub tech_stack）
         if lang_filter and results["scholars"]:
@@ -102,6 +122,7 @@ class AITalentGraph:
             else:
                 results["warnings"].append(f"未找到使用 {lang_filter} 的匹配学者，已返回未筛选结果")
 
+        results["scholars"] = results["scholars"][:limit]
         results["total"] = len(results["scholars"])
         return results
 
@@ -256,6 +277,10 @@ class AITalentGraph:
                 lines.append(f"{i}. {name}")
                 lines.append(f"   机构: {inst} | h-index: {h_idx} | 引用: {cites} | 论文: {works}")
                 lines.append(f"   领域: {topics}")
+                matched = s.get("matched_works") or []
+                if matched:
+                    evidence = matched[0]
+                    lines.append(f"   主题证据: {evidence.get('title', 'Unknown')} ({evidence.get('year', 'N/A')})")
                 if oa_url:
                     lines.append(f"   🔗 {oa_url}")
                 lines.append("")
@@ -417,6 +442,10 @@ class AITalentGraph:
 
 
 def main():
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
     parser = argparse.ArgumentParser(description="AI人才图谱 v2")
     parser.add_argument("action", choices=["search", "profile", "institution", "latest"])
     parser.add_argument("query", help="搜索关键词 / 学者姓名 / 机构名")

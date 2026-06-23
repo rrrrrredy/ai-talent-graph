@@ -43,6 +43,19 @@ You should see a list of scholars.
 
 ---
 
+## Required inputs
+
+- Search: English research topic, institution, paper area, or scholar name.
+- Profile: scholar name; GitHub or X/Twitter handle only when user provides it or it is clearly public and verified.
+- Institution analysis: English institution name and optional limit.
+- Latest papers: keyword query and optional recency/limit.
+
+## When not to use
+
+- Do not use for recruitment pipeline scoring or hiring decisions; use `ai-talent-radar` for recruitment-oriented workflows.
+- Do not use for precise Chinese-name disambiguation unless the user provides stable identifiers such as ORCID, homepage, affiliation, or paper title.
+- Do not infer private identity, employment intent, compensation, or contact details from public academic data.
+
 ## Scenario Mapping
 
 | User says | Agent executes |
